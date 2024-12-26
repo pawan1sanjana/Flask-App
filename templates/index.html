@@ -107,6 +107,30 @@
         // Mobile-friendly zoom controls
         L.control.zoom({ position: 'bottomright' }).addTo(map);
 
+        // Smooth map panning and zooming
+        function smoothPan(lat, lng, zoom = 15) {
+            map.flyTo([lat, lng], zoom, {
+                animate: true,
+                duration: 1.5, // Adjust duration for smoother transitions
+                easeLinearity: 0.25,
+            });
+        }
+
+        // Smooth marker bouncing effect
+        function bounceMarker(marker) {
+            let bounceCount = 0;
+            const interval = setInterval(() => {
+                if (bounceCount >= 4) {
+                    clearInterval(interval);
+                    return;
+                }
+                const latLng = marker.getLatLng();
+                const offset = bounceCount % 2 === 0 ? 0.0005 : -0.0005;
+                marker.setLatLng([latLng.lat + offset, latLng.lng]);
+                bounceCount++;
+            }, 150);
+        }
+
         // Customer data with improved popup
         let customers = [];
         fetch('/api/customers')
@@ -115,7 +139,7 @@
                 customers = data;
 
                 customers.forEach(customer => {
-                    L.marker([customer.latitude, customer.longitude], {
+                    const marker = L.marker([customer.latitude, customer.longitude], {
                         icon: L.icon({
                             iconUrl: 'https://cdn-icons-png.flaticon.com/512/252/252025.png', // Icon for customers
                             iconSize: [32, 32],
@@ -125,6 +149,11 @@
                         .bindPopup(
                             `<b>${customer.name}</b><br>Contact: ${customer.contact}<br>Lat: ${customer.latitude}, Lon: ${customer.longitude}`
                         );
+
+                    marker.on('click', () => {
+                        smoothPan(customer.latitude, customer.longitude, 16);
+                        bounceMarker(marker);
+                    });
                 });
             })
             .catch(err => console.error('Error fetching customer data:', err));
@@ -151,14 +180,14 @@
                     }).addTo(map);
                 }
 
-                map.setView(userLocation, 15); // Follow user location
+                smoothPan(userLocation[0], userLocation[1], 15); // Smoothly follow user location
             });
         }
 
         // Re-center to current location
         document.getElementById('recenter').addEventListener('click', () => {
             if (currentLocationMarker) {
-                map.setView(currentLocationMarker.getLatLng(), 15);
+                smoothPan(currentLocationMarker.getLatLng().lat, currentLocationMarker.getLatLng().lng);
             } else {
                 alert('Current location not available yet.');
             }
@@ -201,16 +230,8 @@
                     });
                 },
             }).addTo(map);
-        });
 
-        // Start navigation
-        document.getElementById('navigate').addEventListener('click', () => {
-            if (!routingControl) {
-                alert('Please set the route first.');
-                return;
-            }
-
-            alert('Navigation started!');
+            smoothPan(waypoints[1].lat, waypoints[1].lng, 14); // Focus on the first waypoint
         });
 
         updateCurrentLocation();
