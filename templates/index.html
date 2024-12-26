@@ -74,8 +74,16 @@
             font-size: 14px;
             color: #555;
         }
-        .floating-button, #navigate, #recenter {
+        .floating-buttons-container {
             position: fixed;
+            right: 20px;
+            bottom: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .floating-button, #navigate, #recenter {
             background-color: white;
             border: none;
             border-radius: 50%;
@@ -83,21 +91,18 @@
             height: 60px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
             cursor: pointer;
-            z-index: 1000;
+            transition: transform 0.3s ease-in-out;
         }
-        #recenter {
-            bottom: 20px;
-            right: 90px;
+        .floating-button:hover, #navigate:hover, #recenter:hover {
+            transform: scale(1.1);
         }
-        #navigate {
-            bottom: 90px;
-            right: 20px;
-            background-color: #34A853;
-        }
-        #navigate img, .floating-button img, #recenter img {
+        #recenter img, #navigate img, .floating-button img {
             width: 100%;
             height: 100%;
             object-fit: contain;
+        }
+        #navigate {
+            background-color: #34A853;
         }
     </style>
 </head>
@@ -112,12 +117,17 @@
         <p id="customer-contact"></p>
         <p id="customer-coordinates"></p>
     </div>
-    <button class="floating-button" id="recenter">
-        <img src="https://cdn-icons-png.flaticon.com/512/929/929430.png" alt="Re-center">
-    </button>
-    <button id="navigate">
-        <img src="https://cdn-icons-png.flaticon.com/512/684/684908.png" alt="Navigate">
-    </button>
+
+    <!-- Floating buttons container for better alignment -->
+    <div class="floating-buttons-container">
+        <button class="floating-button" id="recenter">
+            <img src="https://cdn-icons-png.flaticon.com/512/929/929430.png" alt="Re-center">
+        </button>
+        <button id="navigate">
+            <img src="https://cdn-icons-png.flaticon.com/512/684/684908.png" alt="Navigate">
+        </button>
+    </div>
+
     <script>
         const map = L.map('map', { zoomControl: false }).setView([6.9271, 79.8612], 8);
 
@@ -218,9 +228,22 @@
             routingControl = L.Routing.control({
                 waypoints,
                 routeWhileDragging: true,
+                createMarker: (i, waypoint) => {
+                    return L.marker(waypoint.latLng);
+                }
             }).addTo(map);
 
             smoothPan(waypoints[1].lat, waypoints[1].lng, 14);
+        });
+
+        // Start journey navigation by clicking on the navigate button
+        document.getElementById('navigate').addEventListener('click', () => {
+            if (routingControl) {
+                routingControl.setRouteIndex(0); // Start the journey at the first waypoint
+                alert('Journey Started!');
+            } else {
+                alert('Please set the route first.');
+            }
         });
 
         updateCurrentLocation();
