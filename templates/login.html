@@ -35,6 +35,11 @@
             border: 1px solid #ccc;
             border-radius: 5px;
             font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        .login-container input:focus {
+            border-color: #4285F4;
+            outline: none;
         }
         .login-container button {
             width: 100%;
@@ -52,6 +57,23 @@
         .error {
             color: red;
             margin-top: 10px;
+            display: none;
+            transition: opacity 0.3s;
+        }
+        .password-container {
+            position: relative;
+        }
+        .toggle-password {
+            position: absolute;
+            top: 50%;
+            right: 10px;
+            transform: translateY(-50%);
+            cursor: pointer;
+            font-size: 14px;
+            color: #666;
+        }
+        .toggle-password:hover {
+            color: #333;
         }
     </style>
 </head>
@@ -59,17 +81,20 @@
     <div class="login-container">
         <h1>Login</h1>
         <form id="login-form">
-            <input type="text" id="username" placeholder="Username" required />
-            <input type="password" id="password" placeholder="Password" required />
+            <input type="text" id="username" placeholder="Username" required autofocus />
+            <div class="password-container">
+                <input type="password" id="password" placeholder="Password" required />
+                <span class="toggle-password" onclick="togglePassword()">Show</span>
+            </div>
             <button type="submit">Login</button>
-            <p class="error" id="error-message" style="display: none;">Invalid username or password</p>
+            <p class="error" id="error-message">Invalid username or password</p>
         </form>
     </div>
 
     <script>
         const validCredentials = {
             username: "admin",
-            password: "123"
+            password: "password123"
         };
 
         document.getElementById('login-form').addEventListener('submit', function (event) {
@@ -83,9 +108,23 @@
             } else {
                 const errorMessage = document.getElementById('error-message');
                 errorMessage.style.display = "block";
-                errorMessage.textContent = "Invalid username or password";
+                setTimeout(() => {
+                    errorMessage.style.display = "none";
+                }, 3000);
             }
         });
+
+        function togglePassword() {
+            const passwordField = document.getElementById('password');
+            const toggleText = document.querySelector('.toggle-password');
+            if (passwordField.type === 'password') {
+                passwordField.type = 'text';
+                toggleText.textContent = 'Hide';
+            } else {
+                passwordField.type = 'password';
+                toggleText.textContent = 'Show';
+            }
+        }
     </script>
 </body>
 </html>
