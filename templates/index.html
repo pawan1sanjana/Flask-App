@@ -13,6 +13,7 @@
             margin: 0;
             padding: 0;
             font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
         }
         #map {
             height: 100vh;
@@ -23,11 +24,11 @@
             top: 10px;
             left: 50%;
             transform: translateX(-50%);
-            background-color: rgba(255, 255, 255, 0.9);
+            background-color: rgba(255, 255, 255, 0.95);
             padding: 10px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-            width: 90%;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            width: calc(100% - 20px);
             max-width: 400px;
             display: flex;
             gap: 10px;
@@ -39,6 +40,7 @@
             border-radius: 5px;
             padding: 10px;
             font-size: 16px;
+            outline: none;
         }
         .floating-input button {
             padding: 10px;
@@ -68,7 +70,6 @@
             bottom: 90px;
             right: 20px;
             background-color: #34A853;
-            color: white;
         }
         #navigate img, .floating-button img, #recenter img {
             width: 100%;
@@ -84,13 +85,16 @@
         <button id="set-route">Set Route</button>
     </div>
     <button class="floating-button" id="recenter">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/3/3e/Location_dot_blue.svg" alt="Re-center">
+        <img src="https://cdn-icons-png.flaticon.com/512/929/929430.png" alt="Re-center">
     </button>
     <button id="navigate">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Noun_Project_navigation_icon_2159057.svg/120px-Noun_Project_navigation_icon_2159057.svg.png" alt="Navigate">
+        <img src="https://cdn-icons-png.flaticon.com/512/684/684908.png" alt="Navigate">
     </button>
     <script>
-        const map = L.map('map').setView([6.9271, 79.8612], 8);
+        const map = L.map('map', {
+            zoomControl: false, // Remove default zoom control
+        }).setView([6.9271, 79.8612], 8);
+
         let currentLocationMarker = null;
         let routingControl = null;
         let userLocation = null;
@@ -100,7 +104,10 @@
             maxZoom: 19,
         }).addTo(map);
 
-        // Fetch customer data
+        // Mobile-friendly zoom controls
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        // Customer data with improved popup
         let customers = [];
         fetch('/api/customers')
             .then(response => response.json())
@@ -110,7 +117,7 @@
                 customers.forEach(customer => {
                     L.marker([customer.latitude, customer.longitude], {
                         icon: L.icon({
-                            iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/Map_marker.svg/64px-Map_marker.svg.png',
+                            iconUrl: 'https://cdn-icons-png.flaticon.com/512/252/252025.png', // Icon for customers
                             iconSize: [32, 32],
                         }),
                     })
@@ -138,7 +145,7 @@
                     currentLocationMarker = L.marker(userLocation, {
                         title: 'Your Location',
                         icon: L.icon({
-                            iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/3/3e/Location_dot_blue.svg',
+                            iconUrl: 'https://cdn-icons-png.flaticon.com/512/727/727399.png', // User location icon
                             iconSize: [32, 32],
                         }),
                     }).addTo(map);
@@ -187,8 +194,8 @@
                     return L.marker(waypoint.latLng, {
                         icon: L.icon({
                             iconUrl: i === 0
-                                ? 'https://upload.wikimedia.org/wikipedia/commons/3/3e/Location_dot_blue.svg'
-                                : 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/Map_marker.svg/64px-Map_marker.svg.png',
+                                ? 'https://cdn-icons-png.flaticon.com/512/727/727399.png' // User location
+                                : 'https://cdn-icons-png.flaticon.com/512/252/252025.png', // Waypoints
                             iconSize: [32, 32],
                         }),
                     });
@@ -196,7 +203,7 @@
             }).addTo(map);
         });
 
-        // Enable navigation
+        // Start navigation
         document.getElementById('navigate').addEventListener('click', () => {
             if (!routingControl) {
                 alert('Please set the route first.');
