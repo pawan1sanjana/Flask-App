@@ -3,21 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customer Navigation Map</title>
+    <title>Enhanced Customer Navigation Map</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
     <style>
         body {
             margin: 0;
             padding: 0;
             font-family: Arial, sans-serif;
         }
+
         #map {
             height: 100vh;
             width: 100vw;
         }
+
         .floating-input {
             position: fixed;
             top: 10px;
@@ -33,6 +39,7 @@
             gap: 10px;
             z-index: 1000;
         }
+
         .floating-input input {
             flex: 1;
             border: 1px solid #ccc;
@@ -40,6 +47,7 @@
             padding: 10px;
             font-size: 16px;
         }
+
         .floating-input button {
             padding: 10px;
             background-color: #4285F4;
@@ -49,6 +57,7 @@
             cursor: pointer;
             font-size: 16px;
         }
+
         .floating-button {
             position: fixed;
             bottom: 20px;
@@ -62,11 +71,16 @@
             cursor: pointer;
             z-index: 1000;
         }
-        .floating-button img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
+
+        .floating-button i {
+            font-size: 24px;
+            color: #4285F4;
         }
+
+        .floating-button:hover {
+            background-color: #f1f1f1;
+        }
+
         #navigate {
             position: fixed;
             bottom: 90px;
@@ -84,10 +98,16 @@
             cursor: pointer;
             z-index: 1000;
         }
-        #navigate img {
-            width: 50%;
-            height: 50%;
+
+        #navigate i {
+            font-size: 28px;
+            color: white;
         }
+
+        #navigate:hover {
+            background-color: #2b8e3c;
+        }
+
         #recenter {
             position: fixed;
             bottom: 160px;
@@ -101,10 +121,30 @@
             cursor: pointer;
             z-index: 1000;
         }
-        #recenter img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
+
+        #recenter i {
+            font-size: 24px;
+            color: #4285F4;
+        }
+
+        #recenter:hover {
+            background-color: #f1f1f1;
+        }
+
+        #info-box {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background-color: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+        }
+
+        #info-box p {
+            margin: 0;
+            font-size: 14px;
         }
     </style>
 </head>
@@ -115,11 +155,16 @@
         <button id="set-route">Set Route</button>
     </div>
     <button class="floating-button" id="recenter">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/3/3e/Location_dot_blue.svg" alt="Re-center">
+        <i class="bi bi-geo-alt-fill"></i>
     </button>
     <button id="navigate">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Noun_Project_navigation_icon_2159057.svg/120px-Noun_Project_navigation_icon_2159057.svg.png" alt="Navigate">
+        <i class="bi bi-compass-fill"></i>
     </button>
+    <div id="info-box">
+        <p><b>Route Info:</b></p>
+        <p id="distance">Distance: N/A</p>
+        <p id="duration">Duration: N/A</p>
+    </div>
     <script>
         const map = L.map('map').setView([6.9271, 79.8612], 8);
         let currentLocationMarker = null;
@@ -131,22 +176,27 @@
             maxZoom: 19,
         }).addTo(map);
 
+        // Marker cluster group
+        const markers = L.markerClusterGroup();
+        map.addLayer(markers);
+
         // Store customer data for quick lookup
         let customers = [];
 
         // Fetch customer data
         fetch('/api/customers')
-            .then(response => response.json())
-            .then(data => {
-                customers = data;
+    .then(response => response.json())
+    .then(data => {
+        console.log(data); // Log the customer data
+        customers = data;
+        customers.forEach(customer => {
+            const marker = L.marker([customer.latitude, customer.longitude])
+                .bindPopup(`<b>${customer.name}</b><br>Lat: ${customer.latitude}, Lon: ${customer.longitude}`);
+            markers.addLayer(marker);
+        });
+    })
+    .catch(err => console.error('Error fetching customer data:', err));
 
-                // Add markers to the map
-                customers.forEach(customer => {
-                    L.marker([customer.latitude, customer.longitude]).addTo(map)
-                        .bindPopup(`<b>${customer.name}</b><br>Lat: ${customer.latitude}, Lon: ${customer.longitude}`);
-                });
-            })
-            .catch(err => console.error('Error fetching customer data:', err));
 
         // Track real-time location
         function updateCurrentLocation() {
@@ -165,8 +215,6 @@
                         .addTo(map)
                         .bindPopup('Your current location');
                 }
-
-                map.setView(userLocation, 15);  // Update map to follow the user
             }, err => {
                 console.error('Error fetching geolocation:', err);
             });
@@ -184,24 +232,37 @@
         // Set route based on entered customer IDs
         document.getElementById('set-route').addEventListener('click', () => {
             const input = document.getElementById('customer-ids').value.trim();
-            const ids = input.split(',').map(id => parseInt(id.trim(), 10));
 
-            // Validate IDs
+            if (!input) {
+                alert('Please enter at least one customer ID.');
+                return;
+            }
+
+            const ids = input.split(',').map(id => parseInt(id.trim(), 10));
+            if (ids.some(isNaN)) {
+                alert('Customer IDs must be valid numbers.');
+                return;
+            }
+
+            const invalidIds = ids.filter(id => !customers.find(customer => customer.id === id));
+            if (invalidIds.length > 0) {
+                alert(`Invalid customer IDs: ${invalidIds.join(', ')}. Please check and try again.`);
+                return;
+            }
+
             const selectedCustomers = ids
                 .map(id => customers.find(customer => customer.id === id))
                 .filter(customer => customer);
 
-            if (selectedCustomers.length !== ids.length) {
-                alert('Invalid customer IDs. Please check and try again.');
+            if (!userLocation) {
+                alert('User location not available yet. Please wait and try again.');
                 return;
             }
 
-            // Initialize or reset routing control
             if (routingControl) {
                 map.removeControl(routingControl);
             }
 
-            // Set waypoints starting from current location
             const waypoints = [
                 userLocation,
                 ...selectedCustomers.map(customer => L.latLng(customer.latitude, customer.longitude))
@@ -210,32 +271,26 @@
             routingControl = L.Routing.control({
                 waypoints: waypoints,
                 routeWhileDragging: true,
-                createMarker: (i, waypoint) => {
-                    if (i === 0) {
-                        return L.marker(waypoint.latLng, { title: 'Start' }).bindPopup('Start Location');
-                    } else if (i === waypoints.length - 1) {
-                        return L.marker(waypoint.latLng, { title: 'End' }).bindPopup('End Location');
-                    } else {
-                        return L.marker(waypoint.latLng, { title: 'Waypoint' }).bindPopup('Waypoint');
-                    }
-                }
+                showAlternatives: true
             }).addTo(map);
+
+            routingControl.on('routesfound', function(e) {
+                const route = e.routes[0];
+                document.getElementById('distance').innerText = `Distance: ${route.summary.totalDistance / 1000} km`;
+                document.getElementById('duration').innerText = `Duration: ${Math.ceil(route.summary.totalTime / 60)} mins`;
+            });
         });
 
-        // Enable navigation button
+        // Navigation button click
         document.getElementById('navigate').addEventListener('click', () => {
             if (!routingControl) {
-                alert('Please set the route first.');
-                return;
+                alert('Set a route first!');
+            } else {
+                alert('Navigation started!');
             }
-
-            // Follow the route
-            routingControl.getPlan().setRouteIndex(0);  // Start navigation
-            alert('Navigation started!');
         });
 
-        // Start real-time location tracking
         updateCurrentLocation();
     </script>
 </body>
-</html>  
+</html>   
