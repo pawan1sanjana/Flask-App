@@ -3,33 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enhanced Customer Navigation Map</title>
+    <title>Customer Navigation Map</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
-    <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
     <style>
         body {
             margin: 0;
             padding: 0;
             font-family: Arial, sans-serif;
         }
-
         #map {
             height: 100vh;
             width: 100vw;
         }
-
         .floating-input {
             position: fixed;
             top: 10px;
             left: 50%;
             transform: translateX(-50%);
-            background-color: white;
+            background-color: rgba(255, 255, 255, 0.9);
             padding: 10px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
@@ -39,7 +33,6 @@
             gap: 10px;
             z-index: 1000;
         }
-
         .floating-input input {
             flex: 1;
             border: 1px solid #ccc;
@@ -47,7 +40,6 @@
             padding: 10px;
             font-size: 16px;
         }
-
         .floating-input button {
             padding: 10px;
             background-color: #4285F4;
@@ -57,11 +49,8 @@
             cursor: pointer;
             font-size: 16px;
         }
-
-        .floating-button {
+        .floating-button, #navigate, #recenter {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
             background-color: white;
             border: none;
             border-radius: 50%;
@@ -71,80 +60,20 @@
             cursor: pointer;
             z-index: 1000;
         }
-
-        .floating-button i {
-            font-size: 24px;
-            color: #4285F4;
+        #recenter {
+            bottom: 20px;
+            right: 90px;
         }
-
-        .floating-button:hover {
-            background-color: #f1f1f1;
-        }
-
         #navigate {
-            position: fixed;
             bottom: 90px;
             right: 20px;
             background-color: #34A853;
             color: white;
-            border-radius: 50%;
-            border: none;
-            width: 70px;
-            height: 70px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-            cursor: pointer;
-            z-index: 1000;
         }
-
-        #navigate i {
-            font-size: 28px;
-            color: white;
-        }
-
-        #navigate:hover {
-            background-color: #2b8e3c;
-        }
-
-        #recenter {
-            position: fixed;
-            bottom: 160px;
-            right: 20px;
-            background-color: white;
-            border: none;
-            border-radius: 50%;
-            width: 60px;
-            height: 60px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-            cursor: pointer;
-            z-index: 1000;
-        }
-
-        #recenter i {
-            font-size: 24px;
-            color: #4285F4;
-        }
-
-        #recenter:hover {
-            background-color: #f1f1f1;
-        }
-
-        #info-box {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            background-color: white;
-            padding: 10px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-            z-index: 1000;
-        }
-
-        #info-box p {
-            margin: 0;
-            font-size: 14px;
+        #navigate img, .floating-button img, #recenter img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
     </style>
 </head>
@@ -155,16 +84,11 @@
         <button id="set-route">Set Route</button>
     </div>
     <button class="floating-button" id="recenter">
-        <i class="bi bi-geo-alt-fill"></i>
+        <img src="https://upload.wikimedia.org/wikipedia/commons/3/3e/Location_dot_blue.svg" alt="Re-center">
     </button>
     <button id="navigate">
-        <i class="bi bi-compass-fill"></i>
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Noun_Project_navigation_icon_2159057.svg/120px-Noun_Project_navigation_icon_2159057.svg.png" alt="Navigate">
     </button>
-    <div id="info-box">
-        <p><b>Route Info:</b></p>
-        <p id="distance">Distance: N/A</p>
-        <p id="duration">Duration: N/A</p>
-    </div>
     <script>
         const map = L.map('map').setView([6.9271, 79.8612], 8);
         let currentLocationMarker = null;
@@ -176,29 +100,29 @@
             maxZoom: 19,
         }).addTo(map);
 
-        // Marker cluster group
-        const markers = L.markerClusterGroup();
-        map.addLayer(markers);
-
-        // Store customer data for quick lookup
-        let customers = [];
-
         // Fetch customer data
+        let customers = [];
         fetch('/api/customers')
-    .then(response => response.json())
-    .then(data => {
-        console.log(data); // Log the customer data
-        customers = data;
-        customers.forEach(customer => {
-            const marker = L.marker([customer.latitude, customer.longitude])
-                .bindPopup(`<b>${customer.name}</b><br>Lat: ${customer.latitude}, Lon: ${customer.longitude}`);
-            markers.addLayer(marker);
-        });
-    })
-    .catch(err => console.error('Error fetching customer data:', err));
+            .then(response => response.json())
+            .then(data => {
+                customers = data;
 
+                customers.forEach(customer => {
+                    L.marker([customer.latitude, customer.longitude], {
+                        icon: L.icon({
+                            iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/Map_marker.svg/64px-Map_marker.svg.png',
+                            iconSize: [32, 32],
+                        }),
+                    })
+                        .addTo(map)
+                        .bindPopup(
+                            `<b>${customer.name}</b><br>Contact: ${customer.contact}<br>Lat: ${customer.latitude}, Lon: ${customer.longitude}`
+                        );
+                });
+            })
+            .catch(err => console.error('Error fetching customer data:', err));
 
-        // Track real-time location
+        // Real-time location tracking
         function updateCurrentLocation() {
             if (!navigator.geolocation) {
                 alert('Geolocation is not supported by your browser');
@@ -211,16 +135,20 @@
                 if (currentLocationMarker) {
                     currentLocationMarker.setLatLng(userLocation);
                 } else {
-                    currentLocationMarker = L.marker(userLocation, { title: 'Your Location' })
-                        .addTo(map)
-                        .bindPopup('Your current location');
+                    currentLocationMarker = L.marker(userLocation, {
+                        title: 'Your Location',
+                        icon: L.icon({
+                            iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/3/3e/Location_dot_blue.svg',
+                            iconSize: [32, 32],
+                        }),
+                    }).addTo(map);
                 }
-            }, err => {
-                console.error('Error fetching geolocation:', err);
+
+                map.setView(userLocation, 15); // Follow user location
             });
         }
 
-        // Re-center map to current location
+        // Re-center to current location
         document.getElementById('recenter').addEventListener('click', () => {
             if (currentLocationMarker) {
                 map.setView(currentLocationMarker.getLatLng(), 15);
@@ -229,33 +157,17 @@
             }
         });
 
-        // Set route based on entered customer IDs
+        // Set route for entered customer IDs
         document.getElementById('set-route').addEventListener('click', () => {
             const input = document.getElementById('customer-ids').value.trim();
-
-            if (!input) {
-                alert('Please enter at least one customer ID.');
-                return;
-            }
-
             const ids = input.split(',').map(id => parseInt(id.trim(), 10));
-            if (ids.some(isNaN)) {
-                alert('Customer IDs must be valid numbers.');
-                return;
-            }
-
-            const invalidIds = ids.filter(id => !customers.find(customer => customer.id === id));
-            if (invalidIds.length > 0) {
-                alert(`Invalid customer IDs: ${invalidIds.join(', ')}. Please check and try again.`);
-                return;
-            }
 
             const selectedCustomers = ids
                 .map(id => customers.find(customer => customer.id === id))
                 .filter(customer => customer);
 
-            if (!userLocation) {
-                alert('User location not available yet. Please wait and try again.');
+            if (selectedCustomers.length !== ids.length) {
+                alert('Invalid customer IDs. Please check and try again.');
                 return;
             }
 
@@ -265,32 +177,36 @@
 
             const waypoints = [
                 userLocation,
-                ...selectedCustomers.map(customer => L.latLng(customer.latitude, customer.longitude))
+                ...selectedCustomers.map(customer => L.latLng(customer.latitude, customer.longitude)),
             ];
 
             routingControl = L.Routing.control({
                 waypoints: waypoints,
                 routeWhileDragging: true,
-                showAlternatives: true
+                createMarker: (i, waypoint) => {
+                    return L.marker(waypoint.latLng, {
+                        icon: L.icon({
+                            iconUrl: i === 0
+                                ? 'https://upload.wikimedia.org/wikipedia/commons/3/3e/Location_dot_blue.svg'
+                                : 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/Map_marker.svg/64px-Map_marker.svg.png',
+                            iconSize: [32, 32],
+                        }),
+                    });
+                },
             }).addTo(map);
-
-            routingControl.on('routesfound', function(e) {
-                const route = e.routes[0];
-                document.getElementById('distance').innerText = `Distance: ${route.summary.totalDistance / 1000} km`;
-                document.getElementById('duration').innerText = `Duration: ${Math.ceil(route.summary.totalTime / 60)} mins`;
-            });
         });
 
-        // Navigation button click
+        // Enable navigation
         document.getElementById('navigate').addEventListener('click', () => {
             if (!routingControl) {
-                alert('Set a route first!');
-            } else {
-                alert('Navigation started!');
+                alert('Please set the route first.');
+                return;
             }
+
+            alert('Navigation started!');
         });
 
         updateCurrentLocation();
     </script>
 </body>
-</html>   
+</html>
