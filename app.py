@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, request, redirect, url_for, jsonify
 
 app = Flask(__name__)
 
@@ -9,14 +9,35 @@ customers = [
     {"id": 3, "name": "Customer C", "latitude": 6.0322, "longitude": 80.217},
 ]
 
-@app.route("/")
-def index():
-    return render_template("login.html")
+# Temporary user credentials
+valid_credentials = {"username": "admin", "password": "password123"}
 
+# Login route
+@app.route("/", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+
+        if username == valid_credentials["username"] and password == valid_credentials["password"]:
+            return redirect(url_for("index"))
+        else:
+            error_message = "Invalid username or password"
+            return render_template("login.html", error=error_message)
+
+    return render_template("index.html")
+
+# Main map route
+@app.route("/index")
+def index():
+    return render_template("index.html")
+
+# Edit page route
 @app.route("/edit")
 def edit():
     return render_template("edit.html")
 
+# Customer management API
 @app.route("/api/customers", methods=["GET", "POST", "PUT"])
 def manage_customers():
     if request.method == "GET":
@@ -24,7 +45,7 @@ def manage_customers():
 
     if request.method == "POST":
         new_customer = request.json
-        new_customer["id"] = max(customer["id"] for customer in customers) + 1
+        new_customer["id"] = max(customer["id"] for customer in customers) + 1 if customers else 1
         customers.append(new_customer)
         return jsonify({"message": "Customer added successfully"}), 201
 
@@ -36,5 +57,5 @@ def manage_customers():
                 return jsonify({"message": "Customer updated successfully"}), 200
         return jsonify({"message": "Customer not found"}), 404
 
-if __name__ == "__app__":
+if __name__ == "__main__":
     app.run(debug=True)
