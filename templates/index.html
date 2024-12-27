@@ -51,7 +51,7 @@
             cursor: pointer;
             font-size: 16px;
         }
-        #customer-info {
+        #navigation-list {
             position: fixed;
             bottom: 10px;
             left: 50%;
@@ -65,14 +65,15 @@
             display: none;
             z-index: 1000;
         }
-        #customer-info h3 {
+        #navigation-list ul {
             margin: 0;
-            font-size: 18px;
+            padding: 0;
+            list-style-type: none;
         }
-        #customer-info p {
-            margin: 5px 0 0;
+        #navigation-list ul li {
             font-size: 14px;
             color: #555;
+            padding: 5px 0;
         }
         .floating-buttons-container {
             position: fixed;
@@ -112,10 +113,10 @@
         <input type="text" id="customer-ids" placeholder="Enter customer IDs (e.g., 1,2,3)" />
         <button id="set-route">Set Route</button>
     </div>
-    <div id="customer-info">
-        <h3 id="customer-name"></h3>
-        <p id="customer-contact"></p>
-        <p id="customer-coordinates"></p>
+    <div id="navigation-list">
+        <ul id="instruction-list">
+            <!-- Navigation instructions will appear here -->
+        </ul>
     </div>
 
     <div class="floating-buttons-container">
@@ -232,6 +233,26 @@
 
             // Pan the map to the first waypoint (user location)
             smoothPan(waypoints[0].lat, waypoints[0].lng, 14);
+
+            // Handle the navigation instructions
+            routingControl.on('routesfound', (e) => {
+                const route = e.routes[0];
+                const instructions = route.instructions;
+                const instructionList = document.getElementById('instruction-list');
+
+                // Clear previous instructions
+                instructionList.innerHTML = '';
+
+                // Display each instruction one by one
+                instructions.forEach(instruction => {
+                    const li = document.createElement('li');
+                    li.textContent = instruction.text;
+                    instructionList.appendChild(li);
+                });
+
+                // Show the navigation list
+                document.getElementById('navigation-list').style.display = 'block';
+            });
         });
 
         document.getElementById('navigate').addEventListener('click', () => {
