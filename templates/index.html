@@ -51,11 +51,10 @@
             cursor: pointer;
             font-size: 16px;
         }
-        #customer-info {
+        #directions-box {
             position: fixed;
             bottom: 10px;
-            left: 50%;
-            transform: translateX(-50%);
+            left: 10px;
             background-color: white;
             padding: 15px;
             border-radius: 10px;
@@ -65,44 +64,15 @@
             display: none;
             z-index: 1000;
         }
-        #customer-info h3 {
+        #directions-box ul {
+            list-style: none;
+            padding: 0;
             margin: 0;
-            font-size: 18px;
-        }
-        #customer-info p {
-            margin: 5px 0 0;
             font-size: 14px;
             color: #555;
         }
-        .floating-buttons-container {
-            position: fixed;
-            right: 20px;
-            bottom: 20px;
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        .floating-button, #navigate, #recenter {
-            background-color: white;
-            border: none;
-            border-radius: 50%;
-            width: 60px;
-            height: 60px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-            cursor: pointer;
-            transition: transform 0.3s ease-in-out;
-        }
-        .floating-button:hover, #navigate:hover, #recenter:hover {
-            transform: scale(1.1);
-        }
-        #recenter img, #navigate img, .floating-button img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-        #navigate {
-            background-color: #34A853;
+        #directions-box ul li {
+            margin-bottom: 10px;
         }
     </style>
 </head>
@@ -112,39 +82,19 @@
         <input type="text" id="customer-ids" placeholder="Enter customer IDs (e.g., 1,2,3)" />
         <button id="set-route">Set Route</button>
     </div>
-    <div id="customer-info">
-        <h3 id="customer-name"></h3>
-        <p id="customer-contact"></p>
-        <p id="customer-coordinates"></p>
-    </div>
-
-    <div class="floating-buttons-container">
-        <button class="floating-button" id="recenter">
-            <img src="https://cdn-icons-png.flaticon.com/512/929/929430.png" alt="Re-center">
-        </button>
-        <button id="navigate">
-            <img src="https://cdn-icons-png.flaticon.com/512/684/684908.png" alt="Navigate">
-        </button>
+    <div id="directions-box">
+        <h3>Directions</h3>
+        <ul id="directions-list"></ul>
     </div>
 
     <script>
         const map = L.map('map', { zoomControl: false }).setView([6.9271, 79.8612], 8);
-
         let currentLocationMarker = null;
         let routingControl = null;
         let userLocation = null;
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
-
-        L.control.zoom({ position: 'bottomright' }).addTo(map);
-
-        function smoothPan(lat, lng, zoom = 15) {
-            map.flyTo([lat, lng], zoom, {
-                animate: true,
-                duration: 1.5,
-                easeLinearity: 0.25,
-            });
-        }
+        L.control.zoom({ position: 'topleft' }).addTo(map);
 
         let customers = [];
         fetch('/api/customers')
@@ -158,61 +108,14 @@
                             iconSize: [32, 32],
                         }),
                     }).addTo(map).bindPopup(`<b>${customer.name}</b>`);
-
-                    marker.on('click', () => {
-                        smoothPan(customer.latitude, customer.longitude, 16);
-                        showCustomerDetails(customer);
-                    });
                 });
             })
             .catch(err => console.error('Error fetching customer data:', err));
 
-        function updateCurrentLocation() {
-            if (!navigator.geolocation) {
-                alert('Geolocation is not supported by your browser');
-                return;
-            }
-
-            navigator.geolocation.watchPosition(position => {
-                userLocation = [position.coords.latitude, position.coords.longitude];
-                if (currentLocationMarker) {
-                    currentLocationMarker.setLatLng(userLocation);
-                } else {
-                    currentLocationMarker = L.marker(userLocation, {
-                        icon: L.icon({
-                            iconUrl: 'https://cdn-icons-png.flaticon.com/512/727/727399.png',
-                            iconSize: [32, 32],
-                        }),
-                    }).addTo(map);
-                }
-            });
-        }
-
-        function showCustomerDetails(customer) {
-            const infoBox = document.getElementById('customer-info');
-            document.getElementById('customer-name').textContent = `Name: ${customer.name}`;
-            document.getElementById('customer-contact').textContent = `Contact: ${customer.contact || 'N/A'}`;
-            document.getElementById('customer-coordinates').textContent = `Coordinates: (${customer.latitude}, ${customer.longitude})`;
-            infoBox.style.display = 'block';
-        }
-
-        document.getElementById('recenter').addEventListener('click', () => {
-            if (currentLocationMarker) {
-                smoothPan(currentLocationMarker.getLatLng().lat, currentLocationMarker.getLatLng().lng);
-            } else {
-                alert('Current location not available yet.');
-            }
-        });
-
         document.getElementById('set-route').addEventListener('click', () => {
             const input = document.getElementById('customer-ids').value.trim();
             const ids = input.split(',').map(id => parseInt(id.trim(), 10));
-
             const selectedCustomers = ids.map(id => customers.find(c => c.id === id)).filter(c => c);
-            if (selectedCustomers.length !== ids.length) {
-                alert('Invalid customer IDs. Please check and try again.');
-                return;
-            }
 
             if (routingControl) {
                 map.removeControl(routingControl);
@@ -227,20 +130,17 @@
                 waypoints,
                 routeWhileDragging: true,
                 createMarker: (i, waypoint) => L.marker(waypoint.latLng),
+            }).on('routesfound', function (e) {
+                const directionsList = document.getElementById('directions-list');
+                directionsList.innerHTML = '';
+                e.routes[0].instructions.forEach(step => {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = step.text;
+                    directionsList.appendChild(listItem);
+                });
+                document.getElementById('directions-box').style.display = 'block';
             }).addTo(map);
-
-            smoothPan(waypoints[1].lat, waypoints[1].lng, 14);
         });
-
-        document.getElementById('navigate').addEventListener('click', () => {
-            if (routingControl) {
-                routingControl.setRouteIndex(0);
-                alert('Journey Started!');
-            } else {
-                alert('Please set the route first.');
-            }
-        });
-
-        updateCurrentLocation();
     </script>
-</body
+</body>
+</html>
