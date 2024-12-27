@@ -33,7 +33,7 @@ def login():
             error_message = "Invalid username or password"
             return render_template("login.html", error=error_message)
 
-    return render_template("login.html")
+    return render_template("index.html")
 
 @app.route("/index")
 def index():
