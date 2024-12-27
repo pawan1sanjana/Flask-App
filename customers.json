@@ -1,5 +1,18 @@
 [
-    { "id": 1, "name": "Customer A", "latitude": 6.9271, "longitude": 79.8612 },
-    { "id": 2, "name": "Customer B", "latitude": 7.8731, "longitude": 80.7718 },
-    { "id": 3, "name": "Customer C", "latitude": 6.0322, "longitude": 80.217 }
+    { "id": 1620, "name": "K. Kasun", "latitude": 6.8406, "longitude": 79.9823 },
+    { "id": 1621, "name": "S. Sandun", "latitude": 6.8419, "longitude": 79.9908 },
+    { "id": 1622, "name": "N. Nimesha", "latitude": 6.8393, "longitude": 79.9742 },
+    { "id": 1623, "name": "A. Anuruddha", "latitude": 6.8417, "longitude": 79.9783 },
+    { "id": 1624, "name": "R. Ruwan", "latitude": 6.8473, "longitude": 79.9890 },
+    { "id": 1625, "name": "S. Saman", "latitude": 6.8501, "longitude": 79.9831 },
+    { "id": 1626, "name": "C. Chandimal", "latitude": 6.8445, "longitude": 79.9750 },
+    { "id": 1627, "name": "G. Gayan", "latitude": 6.8498, "longitude": 79.9876 },
+    { "id": 1628, "name": "A. Amila", "latitude": 6.8483, "longitude": 79.9881 },
+    { "id": 1629, "name": "M. Malik", "latitude": 6.0340, "longitude": 80.2155 },
+    { "id": 1630, "name": "A. Angela", "latitude": 6.0319, "longitude": 80.2197 },
+    { "id": 1631, "name": "R. Ranil", "latitude": 6.0355, "longitude": 80.2179 },
+    { "id": 1632, "name": "G. Gihan", "latitude": 6.0337, "longitude": 80.2202 },
+    { "id": 1633, "name": "M. Manoj", "latitude": 6.0325, "longitude": 80.2168 },
+    { "id": 1634, "name": "V. Vishva", "latitude": 6.0301, "longitude": 80.2151 },
+    { "id": 1635, "name": "D. Dinuja", "latitude": 6.0298, "longitude": 80.2183 }
 ]
