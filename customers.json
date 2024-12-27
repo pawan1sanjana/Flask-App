@@ -1,0 +1,5 @@
+[
+    { "id": 1, "name": "Customer A", "latitude": 6.9271, "longitude": 79.8612 },
+    { "id": 2, "name": "Customer B", "latitude": 7.8731, "longitude": 80.7718 },
+    { "id": 3, "name": "Customer C", "latitude": 6.0322, "longitude": 80.217 }
+]
