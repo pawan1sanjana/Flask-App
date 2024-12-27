@@ -28,7 +28,7 @@ def login():
         password = request.form.get("password")
 
         if username == valid_credentials["username"] and password == valid_credentials["password"]:
-            return redirect(url_for("index"))
+            return redirect(("index"))
         else:
             error_message = "Invalid username or password"
             return render_template("login.html", error=error_message)
