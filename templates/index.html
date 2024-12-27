@@ -118,7 +118,6 @@
         <p id="customer-coordinates"></p>
     </div>
 
-    <!-- Floating buttons container for better alignment -->
     <div class="floating-buttons-container">
         <button class="floating-button" id="recenter">
             <img src="https://cdn-icons-png.flaticon.com/512/929/929430.png" alt="Re-center">
@@ -129,24 +128,25 @@
     </div>
 
     <script>
-        const map = L.map('map', { zoomControl: false }).setView([6.9271, 79.8612], 8);
+        const map = L.map('map', { zoomControl: false }).setView([6.1677, 80.1864], 10);
 
-        let currentLocationMarker = null;
-        let routingControl = null;
-        let userLocation = null;
+        // Define bounding box for Galle district (approximate coordinates)
+        const bounds = L.latLngBounds(
+            [5.930, 79.850], // Southwest corner
+            [6.330, 80.500]  // Northeast corner
+        );
 
         // Add OpenStreetMap tiles
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
 
-        L.control.zoom({ position: 'bottomright' }).addTo(map);
+        // Restrict the map to the defined bounds
+        map.setMaxBounds(bounds);
 
-        function smoothPan(lat, lng, zoom = 15) {
-            map.flyTo([lat, lng], zoom, {
-                animate: true,
-                duration: 1.5,
-                easeLinearity: 0.25,
-            });
-        }
+        // Prevent zooming out too far
+        map.setMinZoom(10);
+        map.fitBounds(bounds);
+
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
 
         let customers = [];
         fetch('/api/customers')
@@ -160,27 +160,25 @@
                             iconSize: [32, 32],
                         }),
                     }).addTo(map).bindPopup(`<b>${customer.name}</b>`);
-                    
-                    marker.on('click', () => {
-                        smoothPan(customer.latitude, customer.longitude, 16);
-                        showCustomerDetails(customer);
-                    });
                 });
             })
             .catch(err => console.error('Error fetching customer data:', err));
+
+        let currentLocationMarker = null;
 
         function updateCurrentLocation() {
             if (!navigator.geolocation) {
                 alert('Geolocation is not supported by your browser');
                 return;
             }
-
             navigator.geolocation.watchPosition(position => {
-                userLocation = [position.coords.latitude, position.coords.longitude];
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+
                 if (currentLocationMarker) {
-                    currentLocationMarker.setLatLng(userLocation);
+                    currentLocationMarker.setLatLng([lat, lng]);
                 } else {
-                    currentLocationMarker = L.marker(userLocation, {
+                    currentLocationMarker = L.marker([lat, lng], {
                         icon: L.icon({
                             iconUrl: 'https://cdn-icons-png.flaticon.com/512/727/727399.png',
                             iconSize: [32, 32],
@@ -190,63 +188,7 @@
             });
         }
 
-        function showCustomerDetails(customer) {
-            const infoBox = document.getElementById('customer-info');
-            document.getElementById('customer-name').textContent = `Name: ${customer.name}`;
-            document.getElementById('customer-contact').textContent = `Contact: ${customer.contact}`;
-            document.getElementById('customer-coordinates').textContent = `Coordinates: (${customer.latitude}, ${customer.longitude})`;
-            infoBox.style.display = 'block';
-        }
-
-        document.getElementById('recenter').addEventListener('click', () => {
-            if (currentLocationMarker) {
-                smoothPan(currentLocationMarker.getLatLng().lat, currentLocationMarker.getLatLng().lng);
-            } else {
-                alert('Current location not available yet.');
-            }
-        });
-
-        document.getElementById('set-route').addEventListener('click', () => {
-            const input = document.getElementById('customer-ids').value.trim();
-            const ids = input.split(',').map(id => parseInt(id.trim(), 10));
-
-            const selectedCustomers = ids.map(id => customers.find(c => c.id === id)).filter(c => c);
-            if (selectedCustomers.length !== ids.length) {
-                alert('Invalid customer IDs. Please check and try again.');
-                return;
-            }
-
-            if (routingControl) {
-                map.removeControl(routingControl);
-            }
-
-            const waypoints = [
-                userLocation,
-                ...selectedCustomers.map(c => L.latLng(c.latitude, c.longitude)),
-            ];
-
-            routingControl = L.Routing.control({
-                waypoints,
-                routeWhileDragging: true,
-                createMarker: (i, waypoint) => {
-                    return L.marker(waypoint.latLng);
-                }
-            }).addTo(map);
-
-            smoothPan(waypoints[1].lat, waypoints[1].lng, 14);
-        });
-
-        // Start journey navigation by clicking on the navigate button
-        document.getElementById('navigate').addEventListener('click', () => {
-            if (routingControl) {
-                routingControl.setRouteIndex(0); // Start the journey at the first waypoint
-                alert('Journey Started!');
-            } else {
-                alert('Please set the route first.');
-            }
-        });
-
         updateCurrentLocation();
     </script>
 </body>
-</html> 
+</html>
