@@ -1,5 +1,5 @@
 import json
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, redirect, jsonify
 
 app = Flask(__name__)
 
@@ -18,24 +18,7 @@ def save_customers(customers):
     with open(CUSTOMERS_FILE, "w") as file:
         json.dump(customers, file, indent=4)
 
-# Temporary user credentials
-valid_credentials = {"username": "admin", "password": "123"}
-
-@app.route("/", methods=["GET", "POST"])
-def login():
-    if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
-
-        if username == valid_credentials["username"] and password == valid_credentials["password"]:
-            return redirect("index.html")
-        else:
-            error_message = "Invalid username or password"
-            return render_template("login.html", error=error_message)
-
-    return render_template("index.html")
-
-@app.route("/index")
+@app.route("/")
 def index():
     return render_template("index.html")
 
