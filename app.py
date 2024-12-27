@@ -19,7 +19,7 @@ def save_customers(customers):
         json.dump(customers, file, indent=4)
 
 # Temporary user credentials
-valid_credentials = {"username": "admin", "password": "password123"}
+valid_credentials = {"username": "admin", "password": "123"}
 
 @app.route("/", methods=["GET", "POST"])
 def login():
@@ -33,7 +33,7 @@ def login():
             error_message = "Invalid username or password"
             return render_template("login.html", error=error_message)
 
-    return render_template("login.html")
+    return render_template("index.html")
 
 @app.route("/index")
 def index():
