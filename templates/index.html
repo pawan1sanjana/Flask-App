@@ -204,29 +204,34 @@
             const ids = input.split(',').map(id => parseInt(id.trim(), 10));
 
             const selectedCustomers = ids.map(id => customers.find(c => c.id === id)).filter(c => c);
+
             if (selectedCustomers.length !== ids.length) {
                 alert('Invalid customer IDs. Please check and try again.');
                 return;
             }
 
+            // Clear previous route if any
             if (routingControl) {
                 map.removeControl(routingControl);
             }
 
-            const waypoints = [
-                userLocation,
-                ...selectedCustomers.map(c => L.latLng(c.latitude, c.longitude)),
-            ];
+            // Add the user's current location as the starting point
+            const waypoints = [L.latLng(userLocation)];
 
+            // Add the customers' locations as the route waypoints
+            selectedCustomers.forEach(customer => {
+                waypoints.push(L.latLng(customer.latitude, customer.longitude));
+            });
+
+            // Set the route using Leaflet Routing Machine
             routingControl = L.Routing.control({
-                waypoints,
+                waypoints: waypoints,
                 routeWhileDragging: true,
-                createMarker: (i, waypoint) => {
-                    return L.marker(waypoint.latLng);
-                }
+                createMarker: () => null, // We don't need additional markers
             }).addTo(map);
 
-            smoothPan(waypoints[1].lat, waypoints[1].lng, 14);
+            // Pan the map to the first waypoint (user location)
+            smoothPan(waypoints[0].lat, waypoints[0].lng, 14);
         });
 
         document.getElementById('navigate').addEventListener('click', () => {
