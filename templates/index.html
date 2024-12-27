@@ -74,14 +74,13 @@
             font-size: 14px;
             color: #555;
         }
-        /* Adjusted button container to avoid overlap */
         .floating-buttons-container {
             position: fixed;
-            left: 20px; /* Changed from right to left */
-            bottom: 80px; /* Adjusted vertical position to give space for zoom controls */
+            left: 20px;
+            bottom: 80px;
             z-index: 1000;
             display: flex;
-            flex-direction: column; /* Vertical stack of buttons */
+            flex-direction: column;
             gap: 15px;
         }
         .floating-button, #navigate, #recenter {
@@ -131,19 +130,13 @@
     <script>
         const map = L.map('map', { zoomControl: false }).setView([6.1677, 80.1864], 10);
 
-        // Define bounding box for Galle district (approximate coordinates)
         const bounds = L.latLngBounds(
-            [5.930, 79.850], // Southwest corner
-            [6.330, 80.500]  // Northeast corner
+            [5.930, 79.850], 
+            [6.330, 80.500]
         );
 
-        // Add OpenStreetMap tiles
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
-
-        // Restrict the map to the defined bounds
         map.setMaxBounds(bounds);
-
-        // Prevent zooming out too far
         map.setMinZoom(10);
         map.fitBounds(bounds);
 
@@ -166,20 +159,21 @@
             .catch(err => console.error('Error fetching customer data:', err));
 
         let currentLocationMarker = null;
+        let routingControl = null;
+        let userLocation = null;
 
         function updateCurrentLocation() {
             if (!navigator.geolocation) {
                 alert('Geolocation is not supported by your browser');
                 return;
             }
-            navigator.geolocation.watchPosition(position => {
-                const lat = position.coords.latitude;
-                const lng = position.coords.longitude;
 
+            navigator.geolocation.watchPosition(position => {
+                userLocation = [position.coords.latitude, position.coords.longitude];
                 if (currentLocationMarker) {
-                    currentLocationMarker.setLatLng([lat, lng]);
+                    currentLocationMarker.setLatLng(userLocation);
                 } else {
-                    currentLocationMarker = L.marker([lat, lng], {
+                    currentLocationMarker = L.marker(userLocation, {
                         icon: L.icon({
                             iconUrl: 'https://cdn-icons-png.flaticon.com/512/727/727399.png',
                             iconSize: [32, 32],
@@ -188,6 +182,61 @@
                 }
             });
         }
+
+        function smoothPan(lat, lng, zoom = 15) {
+            map.flyTo([lat, lng], zoom, {
+                animate: true,
+                duration: 1.5,
+                easeLinearity: 0.25,
+            });
+        }
+
+        document.getElementById('recenter').addEventListener('click', () => {
+            if (currentLocationMarker) {
+                smoothPan(currentLocationMarker.getLatLng().lat, currentLocationMarker.getLatLng().lng);
+            } else {
+                alert('Current location not available yet.');
+            }
+        });
+
+        document.getElementById('set-route').addEventListener('click', () => {
+            const input = document.getElementById('customer-ids').value.trim();
+            const ids = input.split(',').map(id => parseInt(id.trim(), 10));
+
+            const selectedCustomers = ids.map(id => customers.find(c => c.id === id)).filter(c => c);
+            if (selectedCustomers.length !== ids.length) {
+                alert('Invalid customer IDs. Please check and try again.');
+                return;
+            }
+
+            if (routingControl) {
+                map.removeControl(routingControl);
+            }
+
+            const waypoints = [
+                userLocation,
+                ...selectedCustomers.map(c => L.latLng(c.latitude, c.longitude)),
+            ];
+
+            routingControl = L.Routing.control({
+                waypoints,
+                routeWhileDragging: true,
+                createMarker: (i, waypoint) => {
+                    return L.marker(waypoint.latLng);
+                }
+            }).addTo(map);
+
+            smoothPan(waypoints[1].lat, waypoints[1].lng, 14);
+        });
+
+        document.getElementById('navigate').addEventListener('click', () => {
+            if (routingControl) {
+                routingControl.setRouteIndex(0); // Start the journey at the first waypoint
+                alert('Journey Started!');
+            } else {
+                alert('Please set the route first.');
+            }
+        });
 
         updateCurrentLocation();
     </script>
