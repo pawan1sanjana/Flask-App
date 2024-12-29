@@ -23,171 +23,255 @@ def save_customers(customers):
 def index():
     # Serve the HTML content directly from the Flask app
     return """
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Customer Navigation Map</title>
-        <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-        <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
-        <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-        <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
-        <style>
-            body {
-                margin: 0;
-                padding: 0;
-                font-family: Arial, sans-serif;
-                background-color: #f9f9f9;
-            }
-            #map {
-                height: 100vh;
-                width: 100vw;
-            }
-            .floating-input {
-                position: fixed;
-                top: 10px;
-                left: 50%;
-                transform: translateX(-50%);
-                background-color: rgba(255, 255, 255, 0.95);
-                padding: 10px;
-                border-radius: 10px;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-                width: calc(100% - 20px);
-                max-width: 400px;
-                display: flex;
-                gap: 10px;
-                z-index: 1000;
-            }
-            .floating-input input {
-                flex: 1;
-                border: 1px solid #ccc;
-                border-radius: 5px;
-                padding: 10px;
-                font-size: 16px;
-                outline: none;
-            }
-            .floating-input button {
-                padding: 10px;
-                background-color: #4285F4;
-                color: white;
-                border: none;
-                border-radius: 5px;
-                cursor: pointer;
-                font-size: 16px;
-            }
-            .floating-buttons-container {
-                position: fixed;
-                left: 20px;
-                bottom: 80px;
-                z-index: 1000;
-                display: flex;
-                flex-direction: column;
-                gap: 15px;
-            }
-            .floating-button, #navigate, #recenter {
-                background-color: white;
-                border: none;
-                border-radius: 50%;
-                width: 60px;
-                height: 60px;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-                cursor: pointer;
-                transition: transform 0.3s ease-in-out;
-            }
-            .floating-button:hover, #navigate:hover, #recenter:hover {
-                transform: scale(1.1);
-            }
-            #recenter img, #navigate img, .floating-button img {
-                width: 100%;
-                height: 100%;
-                object-fit: contain;
-            }
-        </style>
-    </head>
-    <body>
-        <div id="map"></div>
-        <div class="floating-input">
-            <input type="text" id="customer-ids" placeholder="Enter customer IDs (e.g., 1,2,3)" />
-            <button id="set-route">Set Route</button>
-        </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Navigation Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+        }
+        #map {
+            height: 100vh;
+            width: 100vw;
+        }
+        .floating-input {
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(255, 255, 255, 0.95);
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            width: calc(100% - 20px);
+            max-width: 400px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+        .floating-input input {
+            flex: 1;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+            font-size: 16px;
+            outline: none;
+        }
+        .floating-input button {
+            padding: 10px;
+            background-color: #4285F4;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        #customer-info {
+            position: fixed;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            width: calc(100% - 20px);
+            max-width: 400px;
+            display: none;
+            z-index: 1000;
+        }
+        #customer-info h3 {
+            margin: 0;
+            font-size: 18px;
+        }
+        #customer-info p {
+            margin: 5px 0 0;
+            font-size: 14px;
+            color: #555;
+        }
+        .floating-buttons-container {
+            position: fixed;
+            left: 20px;
+            bottom: 80px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .floating-button, #navigate, #recenter {
+            background-color: white;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            transition: transform 0.3s ease-in-out;
+        }
+        .floating-button:hover, #navigate:hover, #recenter:hover {
+            transform: scale(1.1);
+        }
+        #recenter img, #navigate img, .floating-button img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        #navigate {
+            background-color: #34A853;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div class="floating-input">
+        <input type="text" id="customer-ids" placeholder="Enter customer IDs (e.g., 1,2,3)" />
+        <button id="set-route">Set Route</button>
+    </div>
+    <div id="customer-info">
+        <h3 id="customer-name"></h3>
+        <p id="customer-contact"></p>
+        <p id="customer-coordinates"></p>
+    </div>
 
-        <div class="floating-buttons-container">
-            <button class="floating-button" id="recenter">
-                <img src="https://cdn-icons-png.flaticon.com/512/929/929430.png" alt="Re-center">
-            </button>
-            <button id="navigate">
-                <img src="https://cdn-icons-png.flaticon.com/512/684/684908.png" alt="Navigate">
-            </button>
-        </div>
+    <div class="floating-buttons-container">
+        <button class="floating-button" id="recenter">
+            <img src="https://cdn-icons-png.flaticon.com/512/929/929430.png" alt="Re-center">
+        </button>
+        <button id="navigate">
+            <img src="https://cdn-icons-png.flaticon.com/512/684/684908.png" alt="Navigate">
+        </button>
+    </div>
 
-        <script>
-            const map = L.map('map', { zoomControl: false }).setView([6.1677, 80.1864], 10);
+    <script>
+        const map = L.map('map', { zoomControl: false }).setView([6.1677, 80.1864], 10);
 
-            const bounds = L.latLngBounds(
-                [5.930, 79.850], 
-                [6.330, 80.500]
-            );
+        const bounds = L.latLngBounds(
+            [5.930, 79.850], 
+            [6.330, 80.500]
+        );
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
-            map.setMaxBounds(bounds);
-            map.setMinZoom(10);
-            map.fitBounds(bounds);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+        map.setMaxBounds(bounds);
+        map.setMinZoom(10);
+        map.fitBounds(bounds);
 
-            L.control.zoom({ position: 'bottomright' }).addTo(map);
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-            let customers = [];
-            fetch('/api/customers')
-                .then(response => response.json())
-                .then(data => {
-                    customers = data;
-                    customers.forEach(customer => {
-                        const marker = L.marker([customer.latitude, customer.longitude], {
-                            icon: L.icon({
-                                iconUrl: 'https://cdn-icons-png.flaticon.com/512/252/252025.png',
-                                iconSize: [32, 32],
-                            }),
-                        }).addTo(map).bindPopup(`<b>${customer.name}</b>`);
-                    });
-                })
-                .catch(err => console.error('Error fetching customer data:', err));
-
-            let currentLocationMarker = null;
-            let userLocation = null;
-
-            function updateCurrentLocation() {
-                if (!navigator.geolocation) {
-                    alert('Geolocation is not supported by your browser');
-                    return;
-                }
-
-                navigator.geolocation.watchPosition(position => {
-                    userLocation = [position.coords.latitude, position.coords.longitude];
-                    if (currentLocationMarker) {
-                        currentLocationMarker.setLatLng(userLocation);
-                    } else {
-                        currentLocationMarker = L.marker(userLocation, {
-                            icon: L.icon({
-                                iconUrl: 'https://cdn-icons-png.flaticon.com/512/727/727399.png',
-                                iconSize: [32, 32],
-                            }),
-                        }).addTo(map);
-                    }
+        let customers = [];
+        fetch('/api/customers')
+            .then(response => response.json())
+            .then(data => {
+                customers = data;
+                customers.forEach(customer => {
+                    const marker = L.marker([customer.latitude, customer.longitude], {
+                        icon: L.icon({
+                            iconUrl: 'https://cdn-icons-png.flaticon.com/512/252/252025.png',
+                            iconSize: [32, 32],
+                        }),
+                    }).addTo(map).bindPopup(`<b>${customer.name}</b>`);
                 });
+            })
+            .catch(err => console.error('Error fetching customer data:', err));
+
+        let currentLocationMarker = null;
+        let routingControl = null;
+        let userLocation = null;
+
+        function updateCurrentLocation() {
+            if (!navigator.geolocation) {
+                alert('Geolocation is not supported by your browser');
+                return;
             }
 
-            document.getElementById('recenter').addEventListener('click', () => {
+            navigator.geolocation.watchPosition(position => {
+                userLocation = [position.coords.latitude, position.coords.longitude];
                 if (currentLocationMarker) {
-                    map.flyTo(currentLocationMarker.getLatLng(), 15);
+                    currentLocationMarker.setLatLng(userLocation);
                 } else {
-                    alert('Current location not available yet.');
+                    currentLocationMarker = L.marker(userLocation, {
+                        icon: L.icon({
+                            iconUrl: 'https://cdn-icons-png.flaticon.com/512/727/727399.png',
+                            iconSize: [32, 32],
+                        }),
+                    }).addTo(map);
                 }
             });
+        }
 
-            updateCurrentLocation();
-        </script>
-    </body>
-    </html>
+        function smoothPan(lat, lng, zoom = 15) {
+            map.flyTo([lat, lng], zoom, {
+                animate: true,
+                duration: 1.5,
+                easeLinearity: 0.25,
+            });
+        }
+
+        document.getElementById('recenter').addEventListener('click', () => {
+            if (currentLocationMarker) {
+                smoothPan(currentLocationMarker.getLatLng().lat, currentLocationMarker.getLatLng().lng);
+            } else {
+                alert('Current location not available yet.');
+            }
+        });
+
+        document.getElementById('set-route').addEventListener('click', () => {
+            const input = document.getElementById('customer-ids').value.trim();
+            const ids = input.split(',').map(id => parseInt(id.trim(), 10));
+
+            const selectedCustomers = ids.map(id => customers.find(c => c.id === id)).filter(c => c);
+
+            if (selectedCustomers.length !== ids.length) {
+                alert('Invalid customer IDs. Please check and try again.');
+                return;
+            }
+
+            // Clear previous route if any
+            if (routingControl) {
+                map.removeControl(routingControl);
+            }
+
+            // Add the user's current location as the starting point
+            const waypoints = [L.latLng(userLocation)];
+
+            // Add the customers' locations as the route waypoints
+            selectedCustomers.forEach(customer => {
+                waypoints.push(L.latLng(customer.latitude, customer.longitude));
+            });
+
+            // Set the route using Leaflet Routing Machine
+            routingControl = L.Routing.control({
+                waypoints: waypoints,
+                routeWhileDragging: true,
+                createMarker: () => null, // We don't need additional markers
+            }).addTo(map);
+
+            // Pan the map to the first waypoint (user location)
+            smoothPan(waypoints[0].lat, waypoints[0].lng, 14);
+        });
+
+        document.getElementById('navigate').addEventListener('click', () => {
+            if (routingControl) {
+                routingControl.setRouteIndex(0); // Start the journey at the first waypoint
+                alert('Journey Started!');
+            } else {
+                alert('Please set the route first.');
+            }
+        });
+
+        updateCurrentLocation();
+    </script>
+</body>
+</html>
     """
 
 @app.route("/api/customers", methods=["GET", "POST", "PUT"])
