@@ -3,6 +3,7 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
+# Path to the JSON file storing customer data
 CUSTOMERS_FILE = "customers.json"
 
 def load_customers():
@@ -20,6 +21,7 @@ def save_customers(customers):
 
 @app.route("/")
 def index():
+    # Serve the HTML content directly from the Flask app
     return """
     <!DOCTYPE html>
     <html lang="en">
@@ -32,7 +34,75 @@ def index():
         <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
         <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
         <style>
-            /* Add your CSS styles here (same as your provided HTML code) */
+            body {
+                margin: 0;
+                padding: 0;
+                font-family: Arial, sans-serif;
+                background-color: #f9f9f9;
+            }
+            #map {
+                height: 100vh;
+                width: 100vw;
+            }
+            .floating-input {
+                position: fixed;
+                top: 10px;
+                left: 50%;
+                transform: translateX(-50%);
+                background-color: rgba(255, 255, 255, 0.95);
+                padding: 10px;
+                border-radius: 10px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+                width: calc(100% - 20px);
+                max-width: 400px;
+                display: flex;
+                gap: 10px;
+                z-index: 1000;
+            }
+            .floating-input input {
+                flex: 1;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+                padding: 10px;
+                font-size: 16px;
+                outline: none;
+            }
+            .floating-input button {
+                padding: 10px;
+                background-color: #4285F4;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 16px;
+            }
+            .floating-buttons-container {
+                position: fixed;
+                left: 20px;
+                bottom: 80px;
+                z-index: 1000;
+                display: flex;
+                flex-direction: column;
+                gap: 15px;
+            }
+            .floating-button, #navigate, #recenter {
+                background-color: white;
+                border: none;
+                border-radius: 50%;
+                width: 60px;
+                height: 60px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+                cursor: pointer;
+                transition: transform 0.3s ease-in-out;
+            }
+            .floating-button:hover, #navigate:hover, #recenter:hover {
+                transform: scale(1.1);
+            }
+            #recenter img, #navigate img, .floating-button img {
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+            }
         </style>
     </head>
     <body>
@@ -40,11 +110,6 @@ def index():
         <div class="floating-input">
             <input type="text" id="customer-ids" placeholder="Enter customer IDs (e.g., 1,2,3)" />
             <button id="set-route">Set Route</button>
-        </div>
-        <div id="customer-info">
-            <h3 id="customer-name"></h3>
-            <p id="customer-contact"></p>
-            <p id="customer-coordinates"></p>
         </div>
 
         <div class="floating-buttons-container">
@@ -87,7 +152,39 @@ def index():
                 })
                 .catch(err => console.error('Error fetching customer data:', err));
 
-            // Add JavaScript logic here (same as your provided HTML code)
+            let currentLocationMarker = null;
+            let userLocation = null;
+
+            function updateCurrentLocation() {
+                if (!navigator.geolocation) {
+                    alert('Geolocation is not supported by your browser');
+                    return;
+                }
+
+                navigator.geolocation.watchPosition(position => {
+                    userLocation = [position.coords.latitude, position.coords.longitude];
+                    if (currentLocationMarker) {
+                        currentLocationMarker.setLatLng(userLocation);
+                    } else {
+                        currentLocationMarker = L.marker(userLocation, {
+                            icon: L.icon({
+                                iconUrl: 'https://cdn-icons-png.flaticon.com/512/727/727399.png',
+                                iconSize: [32, 32],
+                            }),
+                        }).addTo(map);
+                    }
+                });
+            }
+
+            document.getElementById('recenter').addEventListener('click', () => {
+                if (currentLocationMarker) {
+                    map.flyTo(currentLocationMarker.getLatLng(), 15);
+                } else {
+                    alert('Current location not available yet.');
+                }
+            });
+
+            updateCurrentLocation();
         </script>
     </body>
     </html>
