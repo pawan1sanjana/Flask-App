@@ -3,108 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customer Navigation Map with Voice Guidance</title>
+    <title>Customer Navigation Map</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
     <style>
-         body {
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-            background-color: #f9f9f9;
-        }
-        #map {
-            height: 100vh;
-            width: 100vw;
-        }
-        .floating-input {
-            position: fixed;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: rgba(255, 255, 255, 0.95);
-            padding: 10px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-            width: calc(100% - 20px);
-            max-width: 400px;
-            display: flex;
-            gap: 10px;
-            z-index: 1000;
-        }
-        .floating-input input {
-            flex: 1;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            padding: 10px;
-            font-size: 16px;
-            outline: none;
-        }
-        .floating-input button {
-            padding: 10px;
-            background-color: #4285F4;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        #customer-info {
-            position: fixed;
-            bottom: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: white;
-            padding: 15px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-            width: calc(100% - 20px);
-            max-width: 400px;
-            display: none;
-            z-index: 1000;
-        }
-        #customer-info h3 {
-            margin: 0;
-            font-size: 18px;
-        }
-        #customer-info p {
-            margin: 5px 0 0;
-            font-size: 14px;
-            color: #555;
-        }
 
-        .floating-buttons-container {
-            position: fixed;
-            left: 20px;
-            bottom: 80px;
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        .floating-button, #navigate, #recenter {
-            background-color: white;
-            border: none;
-            border-radius: 50%;
-            width: 60px;
-            height: 60px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-            cursor: pointer;
-            transition: transform 0.3s ease-in-out;
-        }
-        .floating-button:hover, #navigate:hover, #recenter:hover {
-            transform: scale(1.1);
-        }
-        #recenter img, #navigate img, .floating-button img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-        #navigate {
-            background-color: #34A853;
-        }       
     </style>
 </head>
 <body>
@@ -143,7 +48,6 @@
         let displayedMarkers = [];
         let routingControl = null;
         let userLocation = null;
-        let currentRouteIndex = 0;  // To keep track of the current waypoint
 
         // Fetch customer data from API
         async function fetchCustomers() {
@@ -214,34 +118,10 @@
                 waypoints: waypoints,
                 routeWhileDragging: true,
                 createMarker: () => null,
-                language: 'en',  // Ensure voice is in English
             }).addTo(map);
 
             map.flyTo(waypoints[0], 14);
             document.getElementById('start-navigation').disabled = false; // Enable navigation button
-
-            // Listen for route instructions
-            routingControl.on('routesfound', (event) => {
-                const route = event.routes[0];
-                const instructions = route.instructions;
-                voiceGuidance(instructions, 0);
-            });
-        }
-
-        // Voice guidance using SpeechSynthesis API
-        function voiceGuidance(instructions, index) {
-            if (index >= instructions.length) return;
-
-            const instruction = instructions[index];
-            const text = instruction.text;
-            const msg = new SpeechSynthesisUtterance(text);
-            msg.lang = 'en-US';
-            window.speechSynthesis.speak(msg);
-
-            // Move to the next instruction after a small delay
-            setTimeout(() => {
-                voiceGuidance(instructions, index + 1);
-            }, 3000);  // Delay between instructions (3 seconds)
         }
 
         // Update user's current location
