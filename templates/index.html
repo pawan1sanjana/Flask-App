@@ -129,7 +129,7 @@
         <button class="floating-button" id="recenter">
             <img src="https://cdn-icons-png.flaticon.com/512/929/929430.png" alt="Recenter">
         </button>
-        <button class="floating-button" id="start-navigation">
+        <button class="floating-button" id="start-navigation" disabled>
             <img src="https://cdn-icons-png.flaticon.com/512/684/684908.png" alt="Navigate">
         </button>
     </div>
@@ -144,6 +144,7 @@
         let routingControl = null;
         let userLocation = null;
 
+        // Fetch customer data from API
         async function fetchCustomers() {
             try {
                 const response = await fetch('/api/customers');
@@ -153,11 +154,13 @@
             }
         }
 
+        // Clear existing markers
         function clearMarkers() {
             displayedMarkers.forEach(marker => map.removeLayer(marker));
             displayedMarkers = [];
         }
 
+        // Show markers for selected customer IDs
         function showMarkersForIDs(ids) {
             clearMarkers();
             const selectedCustomers = ids.map(id => customers.find(c => c.id === id)).filter(Boolean);
@@ -168,11 +171,24 @@
                         iconUrl: 'https://cdn-icons-png.flaticon.com/512/252/252025.png',
                         iconSize: [32, 32],
                     }),
-                }).addTo(map);
+                })
+                    .addTo(map)
+                    .on('click', () => showCustomerInfo(customer));
+
                 displayedMarkers.push(marker);
             });
         }
 
+        // Display customer information in the popup
+        function showCustomerInfo(customer) {
+            const infoBox = document.getElementById('customer-info');
+            infoBox.style.display = 'block';
+            document.getElementById('customer-name').innerText = `Name: ${customer.name}`;
+            document.getElementById('customer-Contact').innerText = `Contact: ${customer.contact}`;
+            document.getElementById('customer-coordinates').innerText = `Coordinates: ${customer.latitude}, ${customer.longitude}`;
+        }
+
+        // Set route for selected customer IDs
         function setRouteForIDs(ids) {
             const selectedCustomers = ids.map(id => customers.find(c => c.id === id)).filter(Boolean);
 
@@ -200,19 +216,35 @@
             }).addTo(map);
 
             map.flyTo(waypoints[0], 14);
+            document.getElementById('start-navigation').disabled = false; // Enable navigation button
         }
 
+        // Update user's current location
         async function updateCurrentLocation() {
             if (!navigator.geolocation) {
                 alert('Geolocation is not supported by your browser');
                 return;
             }
 
-            navigator.geolocation.watchPosition(position => {
-                userLocation = [position.coords.latitude, position.coords.longitude];
-            });
+            navigator.geolocation.getCurrentPosition(
+                position => {
+                    userLocation = [position.coords.latitude, position.coords.longitude];
+                    L.marker(userLocation, {
+                        icon: L.icon({
+                            iconUrl: 'https://cdn-icons-png.flaticon.com/512/483/483361.png',
+                            iconSize: [32, 32],
+                        }),
+                    }).addTo(map).bindPopup('Your Location').openPopup();
+                },
+                error => {
+                    console.error('Error retrieving location:', error);
+                    alert('Unable to retrieve location. Please enable location services.');
+                },
+                { enableHighAccuracy: true }
+            );
         }
 
+        // Button event listeners
         document.getElementById('set-route').addEventListener('click', () => {
             const input = document.getElementById('customer-ids').value.trim();
             const ids = input.split(',').map(id => parseInt(id.trim(), 10));
@@ -251,6 +283,7 @@
             }
         });
 
+        // Initialize map with customer data and current location
         async function initializeMap() {
             await fetchCustomers();
             updateCurrentLocation();
