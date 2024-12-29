@@ -315,13 +315,15 @@
         }
 
         initializeMap();
+
+        document.getElementById('current-year').textContent = new Date().getFullYear();
+
     </script>
+    
     <footer style="position: fixed; bottom: 0; width: 100%; background-color: #f1f1f1; text-align: center; padding: 10px; box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1); font-size: 14px;">
         &copy; <span id="current-year"></span> Your Company Name. All rights reserved.
     </footer>
-    
-    <script>
-        document.getElementById('current-year').textContent = new Date().getFullYear();
-    </script>
+
+
 </body>
 </html>
