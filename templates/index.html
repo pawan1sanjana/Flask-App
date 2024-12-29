@@ -74,36 +74,6 @@
             font-size: 14px;
             color: #555;
         }
-        .floating-buttons-container {
-            position: fixed;
-            left: 20px;
-            bottom: 80px;
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        .floating-button, #navigate, #recenter {
-            background-color: white;
-            border: none;
-            border-radius: 50%;
-            width: 60px;
-            height: 60px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-            cursor: pointer;
-            transition: transform 0.3s ease-in-out;
-        }
-        .floating-button:hover, #navigate:hover, #recenter:hover {
-            transform: scale(1.1);
-        }
-        #recenter img, #navigate img, .floating-button img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-        #navigate {
-            background-color: #34A853;
-        }
     </style>
 </head>
 <body>
@@ -118,67 +88,81 @@
         <p id="customer-coordinates"></p>
     </div>
 
-    <div class="floating-buttons-container">
-        <button class="floating-button" id="recenter">
-            <img src="https://cdn-icons-png.flaticon.com/512/929/929430.png" alt="Re-center">
-        </button>
-        <button id="navigate">
-            <img src="https://cdn-icons-png.flaticon.com/512/684/684908.png" alt="Navigate">
-        </button>
-    </div>
-
     <script>
         const map = L.map('map', { zoomControl: false }).setView([6.1677, 80.1864], 10);
 
-        const bounds = L.latLngBounds(
-            [5.930, 79.850], 
-            [6.330, 80.500]
-        );
-
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
-        map.setMaxBounds(bounds);
-        map.setMinZoom(10);
-        map.fitBounds(bounds);
-
-        L.control.zoom({ position: 'bottomright' }).addTo(map);
 
         let customers = [];
-        const customerInfo = document.getElementById('customer-info');
-        const customerName = document.getElementById('customer-name');
-        const customerContact = document.getElementById('customer-contact');
-        const customerCoordinates = document.getElementById('customer-coordinates');
+        let displayedMarkers = [];
+        let routingControl = null;
+        let userLocation = null;
 
-        // Fetch and display customer data
         async function fetchCustomers() {
             try {
                 const response = await fetch('/api/customers');
                 customers = await response.json();
-                updateCustomerMarkers();
             } catch (error) {
                 console.error('Error fetching customer data:', error);
             }
         }
 
-        function updateCustomerMarkers() {
-            customers.forEach(customer => {
+        function clearMarkers() {
+            displayedMarkers.forEach(marker => map.removeLayer(marker));
+            displayedMarkers = [];
+        }
+
+        function showMarkersForIDs(ids) {
+            clearMarkers();
+            const selectedCustomers = ids.map(id => customers.find(c => c.id === id)).filter(Boolean);
+
+            selectedCustomers.forEach(customer => {
                 const marker = L.marker([customer.latitude, customer.longitude], {
                     icon: L.icon({
                         iconUrl: 'https://cdn-icons-png.flaticon.com/512/252/252025.png',
                         iconSize: [32, 32],
                     }),
                 }).addTo(map).on('click', () => {
-                    customerName.textContent = customer.name;
-                    customerContact.textContent = `Contact: ${customer.contact}`;
-                    customerCoordinates.textContent = `Coordinates: ${customer.latitude}, ${customer.longitude}`;
-                    customerInfo.style.display = 'block';
+                    document.getElementById('customer-name').textContent = customer.name;
+                    document.getElementById('customer-contact').textContent = `Contact: ${customer.contact}`;
+                    document.getElementById('customer-coordinates').textContent = `Coordinates: ${customer.latitude}, ${customer.longitude}`;
+                    document.getElementById('customer-info').style.display = 'block';
                 });
+
+                displayedMarkers.push(marker);
             });
         }
 
-        let currentLocationMarker = null;
-        let userLocation = null;
+        function setRouteForIDs(ids) {
+            const selectedCustomers = ids.map(id => customers.find(c => c.id === id)).filter(Boolean);
 
-        function updateCurrentLocation() {
+            if (!userLocation) {
+                alert('User location is not available.');
+                return;
+            }
+
+            if (selectedCustomers.length !== ids.length) {
+                alert('Some customer IDs are invalid. Please check and try again.');
+                return;
+            }
+
+            if (routingControl) {
+                map.removeControl(routingControl);
+            }
+
+            const waypoints = [L.latLng(userLocation)];
+            selectedCustomers.forEach(customer => waypoints.push(L.latLng(customer.latitude, customer.longitude)));
+
+            routingControl = L.Routing.control({
+                waypoints: waypoints,
+                routeWhileDragging: true,
+                createMarker: () => null,
+            }).addTo(map);
+
+            map.flyTo(waypoints[0], 14);
+        }
+
+        async function updateCurrentLocation() {
             if (!navigator.geolocation) {
                 alert('Geolocation is not supported by your browser');
                 return;
@@ -186,31 +170,28 @@
 
             navigator.geolocation.watchPosition(position => {
                 userLocation = [position.coords.latitude, position.coords.longitude];
-                if (currentLocationMarker) {
-                    currentLocationMarker.setLatLng(userLocation);
-                } else {
-                    currentLocationMarker = L.marker(userLocation, {
-                        icon: L.icon({
-                            iconUrl: 'https://cdn-icons-png.flaticon.com/512/727/727399.png',
-                            iconSize: [32, 32],
-                        }),
-                    }).addTo(map);
-                }
             });
         }
 
-        // Re-center map
-        document.getElementById('recenter').addEventListener('click', () => {
-            if (currentLocationMarker) {
-                map.flyTo(currentLocationMarker.getLatLng(), 15);
-            } else {
-                alert('Current location not available yet.');
+        document.getElementById('set-route').addEventListener('click', () => {
+            const input = document.getElementById('customer-ids').value.trim();
+            const ids = input.split(',').map(id => parseInt(id.trim(), 10));
+
+            if (!ids.length) {
+                alert('Please enter valid customer IDs.');
+                return;
             }
+
+            showMarkersForIDs(ids);
+            setRouteForIDs(ids);
         });
 
-        updateCurrentLocation();
-        fetchCustomers();
-        setInterval(fetchCustomers, 30000); // Fetch customer data every 30 seconds
+        async function initializeMap() {
+            await fetchCustomers();
+            updateCurrentLocation();
+        }
+
+        initializeMap();
     </script>
 </body>
 </html>
