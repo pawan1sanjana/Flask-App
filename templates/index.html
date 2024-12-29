@@ -143,23 +143,39 @@
         L.control.zoom({ position: 'bottomright' }).addTo(map);
 
         let customers = [];
-        fetch('/api/customers')
-            .then(response => response.json())
-            .then(data => {
-                customers = data;
-                customers.forEach(customer => {
-                    const marker = L.marker([customer.latitude, customer.longitude], {
-                        icon: L.icon({
-                            iconUrl: 'https://cdn-icons-png.flaticon.com/512/252/252025.png',
-                            iconSize: [32, 32],
-                        }),
-                    }).addTo(map).bindPopup(`<b>${customer.name}</b>`);
+        const customerInfo = document.getElementById('customer-info');
+        const customerName = document.getElementById('customer-name');
+        const customerContact = document.getElementById('customer-contact');
+        const customerCoordinates = document.getElementById('customer-coordinates');
+
+        // Fetch and display customer data
+        async function fetchCustomers() {
+            try {
+                const response = await fetch('/api/customers');
+                customers = await response.json();
+                updateCustomerMarkers();
+            } catch (error) {
+                console.error('Error fetching customer data:', error);
+            }
+        }
+
+        function updateCustomerMarkers() {
+            customers.forEach(customer => {
+                const marker = L.marker([customer.latitude, customer.longitude], {
+                    icon: L.icon({
+                        iconUrl: 'https://cdn-icons-png.flaticon.com/512/252/252025.png',
+                        iconSize: [32, 32],
+                    }),
+                }).addTo(map).on('click', () => {
+                    customerName.textContent = customer.name;
+                    customerContact.textContent = `Contact: ${customer.contact}`;
+                    customerCoordinates.textContent = `Coordinates: ${customer.latitude}, ${customer.longitude}`;
+                    customerInfo.style.display = 'block';
                 });
-            })
-            .catch(err => console.error('Error fetching customer data:', err));
+            });
+        }
 
         let currentLocationMarker = null;
-        let routingControl = null;
         let userLocation = null;
 
         function updateCurrentLocation() {
@@ -183,67 +199,18 @@
             });
         }
 
-        function smoothPan(lat, lng, zoom = 15) {
-            map.flyTo([lat, lng], zoom, {
-                animate: true,
-                duration: 1.5,
-                easeLinearity: 0.25,
-            });
-        }
-
+        // Re-center map
         document.getElementById('recenter').addEventListener('click', () => {
             if (currentLocationMarker) {
-                smoothPan(currentLocationMarker.getLatLng().lat, currentLocationMarker.getLatLng().lng);
+                map.flyTo(currentLocationMarker.getLatLng(), 15);
             } else {
                 alert('Current location not available yet.');
             }
         });
 
-        document.getElementById('set-route').addEventListener('click', () => {
-            const input = document.getElementById('customer-ids').value.trim();
-            const ids = input.split(',').map(id => parseInt(id.trim(), 10));
-
-            const selectedCustomers = ids.map(id => customers.find(c => c.id === id)).filter(c => c);
-
-            if (selectedCustomers.length !== ids.length) {
-                alert('Invalid customer IDs. Please check and try again.');
-                return;
-            }
-
-            // Clear previous route if any
-            if (routingControl) {
-                map.removeControl(routingControl);
-            }
-
-            // Add the user's current location as the starting point
-            const waypoints = [L.latLng(userLocation)];
-
-            // Add the customers' locations as the route waypoints
-            selectedCustomers.forEach(customer => {
-                waypoints.push(L.latLng(customer.latitude, customer.longitude));
-            });
-
-            // Set the route using Leaflet Routing Machine
-            routingControl = L.Routing.control({
-                waypoints: waypoints,
-                routeWhileDragging: true,
-                createMarker: () => null, // We don't need additional markers
-            }).addTo(map);
-
-            // Pan the map to the first waypoint (user location)
-            smoothPan(waypoints[0].lat, waypoints[0].lng, 14);
-        });
-
-        document.getElementById('navigate').addEventListener('click', () => {
-            if (routingControl) {
-                routingControl.setRouteIndex(0); // Start the journey at the first waypoint
-                alert('Journey Started!');
-            } else {
-                alert('Please set the route first.');
-            }
-        });
-
         updateCurrentLocation();
+        fetchCustomers();
+        setInterval(fetchCustomers, 30000); // Fetch customer data every 30 seconds
     </script>
 </body>
 </html>
